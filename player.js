@@ -85,7 +85,7 @@ class AnnilPlaylist {
               new AnnilPlaylistItem({
                 name: track.title,
                 artist: track.artist || disc.artist || input.artist,
-                catalog: disc.catalog,
+                catalog: disc.catalog || input.catalog,
                 track: i + 1,
 
                 server: input.server,
