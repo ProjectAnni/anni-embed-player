@@ -1,5 +1,14 @@
 class AnnilPlaylistItem {
-  constructor({ name, artist, server, token, catalog, track, duration = 300 }) {
+  constructor({
+    name,
+    artist,
+    server,
+    token,
+    album_id,
+    disc,
+    track,
+    duration = 300,
+  }) {
     // Music title
     this.name = name;
     // Artist
@@ -8,8 +17,10 @@ class AnnilPlaylistItem {
     this.server = server;
     // Annil server token
     this.token = token;
-    // Album catalog
-    this.catalog = catalog;
+    // Album id
+    this.album_id = album_id;
+    // Disc id
+    this.disc = disc;
     // Track number
     this.track = track;
     // Track duration
@@ -24,7 +35,7 @@ class AnnilPlaylistItem {
         this._url = undefined;
 
         fetch(
-          `${this.server}/${this.catalog}/${this.track}?auth=${this.token}`,
+          `${this.server}/${this.album_id}/${this.disc}/${this.track}?auth=${this.token}`,
           { cache: "force-cache" }
         ).then((resp) => {
           // set source buffer mime type
@@ -62,7 +73,7 @@ class AnnilPlaylistItem {
   }
 
   get cover() {
-    return `${this.server}/${this.catalog}/cover?auth=${this.token}`;
+    return `${this.server}/${this.album_id}/cover`;
   }
 
   // APlayer tries to set this property, ignore it
@@ -74,44 +85,30 @@ class AnnilPlaylist {
     if (typeof input === "string") {
       input = JSON.parse(input);
     }
-
-    if (input.discs) {
-      // type: album
-      // https://anni.mmf.moe/06.anniv/export-format/02.album.html
-      return input.discs
-        .map((disc) => {
-          return disc.tracks.map(
-            (track, i) =>
-              new AnnilPlaylistItem({
-                name: track.title,
-                artist: track.artist || disc.artist || input.artist,
-                catalog: disc.catalog || input.catalog,
-                track: i + 1,
-
-                server: input.server,
-                token: input.token,
-              })
-          );
-        })
-        .flat();
-    } else if (input.songs) {
-      // type: playlist
-      // TODO
-      return [];
-    } else {
-      // type: song
-      // https://anni.mmf.moe/06.anniv/export-format/01.song.html
-      return [
-        new AnnilPlaylistItem({
-          name: input.title,
-          artist: input.artist,
-          catalog: input.catalog,
-          track: input.track,
-
-          server: input.server,
-          token: input.token,
-        }),
-      ];
-    }
+    // https://book.anni.rs/06.anniv/07.export-format.html
+    return input.songs
+      .map((disc) =>
+        disc.tracks.map((track) => ({
+          album_id: disc.album_id,
+          disc_id: disc.disc_id,
+          track_id: track,
+        }))
+      )
+      .flat()
+      .map((track) => {
+        const trackInfo =
+          input.metadata[track.album_id].discs[track.disc_id - 1].tracks[
+            track.track_id - 1
+          ];
+        return new AnnilPlaylistItem({
+          name: trackInfo.title,
+          artist: trackInfo.artist,
+          server: input.tokens[0].server,
+          token: input.tokens[0].token,
+          album_id: track.album_id,
+          disc: track.disc_id,
+          track: track.track_id,
+        });
+      });
   }
 }
