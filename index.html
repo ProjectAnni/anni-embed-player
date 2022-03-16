@@ -24,18 +24,17 @@
 
     <script>
       const url = new URL(window.location.href);
-
-      const ap = new APlayer({
-        container: document.getElementById("aplayer"),
-        audio: AnnilPlaylist.parse(
-          new TextDecoder().decode(
-            Uint8Array.from(atob(url.searchParams.get("data")), (c) =>
-              c.charCodeAt(0)
-            )
-          )
-        ),
-        autoplay: !!(url.searchParams.get("autoplay") * 1),
-      });
+      let endpoint = url.searchParams.get("endpoint");
+      let id = url.searchParams.get("id");
+      fetch(`${endpoint}/api/share?id=${id}`)
+        .then((r) => r.json())
+        .then(({ data }) => {
+          const ap = new APlayer({
+            container: document.getElementById("aplayer"),
+            audio: AnnilPlaylist.parse(data),
+            autoplay: !!(url.searchParams.get("autoplay") * 1),
+          });
+        });
     </script>
   </body>
 </html>
